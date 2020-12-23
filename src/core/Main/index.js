@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import mainicon from 'assets/mainicon.jpg'
+import { generateDeck, getCardsFromDeck } from 'common/cards'
 import 'App.css';
 import {AddPlayer} from 'common/components'
 
@@ -28,6 +29,11 @@ export function Main (props) {
         }
     }
 
+    const onStartSubmit = (e) => {
+        e.preventDefault()
+        var deck = generateDeck(7)
+    }
+
     return (
         <div className="mainStyle">
             <img style={{width:"200px", height:"200px"}} src={mainicon}></img>
@@ -52,6 +58,9 @@ export function Main (props) {
                     </ul>
                 </div>
             </div>
+            <form onSubmit={onStartSubmit}>
+                <input type="submit" value="Play" />
+            </form>
         </div>
     );
 }
