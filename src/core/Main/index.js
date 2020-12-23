@@ -9,11 +9,78 @@ export function Main (props) {
     const [players, setPlayers] = useState({});
     const [gameOn, setGameOn] = useState(false);
     const [activePlayers, setActivePlayers] = useState([]);
+    const [deck, setDeck] = useState([])
+    const [dealer, setDealer] = useState({})
+    const [action, setAction] = useState('')
+
+    const dealCardsToDealer = () => { 
+        // deal dealer cards
+        let res = getCardsFromDeck(deck, 2)
+        setDealer(a => ({...a, cards: res.cards}))
+        setDeck(a => a.filter(b => {
+            let boo = true
+            res.cards.forEach(c => {
+                if(c.id==b.id) {
+                    boo = false
+                }
+            })
+            return boo
+        }))
+    }
+
+    const dealCardsToPlayers = () => {
+        // deal players
+        let ct_player = activePlayers.length
+        let res = getCardsFromDeck(deck, ct_player*2)
+        activePlayers.forEach((p,i) => {
+            let cards = []
+            cards.push(res.cards[(i*2)])
+            cards.push(res.cards[(i*2)+1])
+            console.log('p', p)
+            console.log('i',i)
+            let player = players[p]
+            player.cards = cards
+            setPlayers(({...players, [p]:player}))
+        })
+        setDeck(a => a.filter(b => {
+            let boo = true
+            res.cards.forEach(c => {
+                if(c.id==b.id) {
+                    boo = false
+                }
+            })
+            return boo
+        }))
+    }
 
     useEffect(() => {
-        console.log('activePlayers was updated', activePlayers)
+        // new deck needed
+        if (deck.length==0) {
+            console.log('new deck')
+            var newDeck = generateDeck(7)
+            setDeck(a => [...a,...newDeck])
+        }
+
+        switch(action) {
+            case 'deal':
+                if (!dealer.cards) {
+                    dealCardsToDealer()
+                }
+
+                if (dealer.cards && dealer.cards.length==2) {
+                    dealCardsToPlayers()
+                    setAction('player')
+                }
+                break
+            
+            case 'player':
+                break
+        }
+
+
     }, [
-        activePlayers
+        gameOn,
+        deck
     ])
 
     const handleNewPlayer = (player) => {
@@ -27,11 +94,21 @@ export function Main (props) {
         if (!gameOn && !activePlayers.includes(player.name)) {
             setActivePlayers(a => [...a, player.name])
         }
+        setAction('newPlayer')
     }
 
     const onStartSubmit = (e) => {
         e.preventDefault()
-        var deck = generateDeck(7)
+        // init players
+        setActivePlayers([])
+        Object.keys(players).forEach(pl => {
+            let player = players[pl]
+            setActivePlayers(a => [...a,player.name])
+        })
+
+        // game on
+        setAction('deal')
+        setGameOn(true)
     }
 
     return (
