@@ -47,4 +47,40 @@ function shuffleArray(arr) {
     return arr
 }
 
-export { generateDeck, getCardsFromDeck }
+// calculate hands (hand1 = dealer)
+const getWinner = (hand1, hand2) => {
+    if(isBlackjack(hand1) || isBlackjack(hand2) && isBlackjack(hand1)==isBlackjack(hand2) ) {
+        return false
+    } else if (isBlackjack(hand1)) {
+        return 'dealer'
+    } else if (isBlackjack(hand2)) {
+        return 'player'
+    } else {
+        var value1 = 0 
+        hand1.forEach(c => value1 = value1 + c.value)
+        var value2 = 0 
+        hand2.forEach(c => value2 = value2 + c.value)
+        if(value2<=21  && (value1>21 || value1<value2)) {
+            return 'player'
+        } else if (value1<=21  && (value2>21 || value2<value1)) {
+            return 'dealer'
+        } else if (value1==value1) {
+            return false
+        } else {
+            return 'dealer'
+        }
+    }
+}
+
+
+const isBlackjack = (hand) => {
+    return hand.length==2 && hand[0].value+hand[1].value==21
+}
+
+const isBusted = (hand) => {
+    var value = 0
+    hand.forEach(c => value = value + c.value)
+    return value>21
+}
+
+export { generateDeck, getCardsFromDeck, getWinner, isBlackjack, isBusted }

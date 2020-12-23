@@ -30,3 +30,12 @@
   z-index: 2;
 }
 
+.actionsStyle {
+  height: 20px;
+}
+
+.buttonStyle {
+  margin-right: 5px;
+  height: 20px;
+  width: 70px;
+}

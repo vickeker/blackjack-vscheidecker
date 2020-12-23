@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import mainicon from 'assets/mainicon.jpg'
-import { generateDeck, getCardsFromDeck } from 'common/cards'
+import { generateDeck, getCardsFromDeck, getWinner, isBusted, isBlackjack } from 'common/cards'
 import 'App.css';
 import {AddPlayer} from 'common/components'
+import {PlayerActions} from 'common/components'
+
 
 export function Main (props) {
     const {} = props;
@@ -12,6 +14,8 @@ export function Main (props) {
     const [deck, setDeck] = useState([])
     const [dealer, setDealer] = useState({})
     const [action, setAction] = useState('')
+    const [actionPlayer, setActionPlayer] = useState(-1)
+
 
     const dealCardsToDealer = () => { 
         // deal dealer cards
@@ -19,6 +23,7 @@ export function Main (props) {
         setDealer(a => ({...a, cards: res.cards}))
         setDeck(a => a.filter(b => {
             let boo = true
+            console.log(res.cards)
             res.cards.forEach(c => {
                 if(c.id==b.id) {
                     boo = false
@@ -53,34 +58,85 @@ export function Main (props) {
         }))
     }
 
+    const dealCardToActivePlayer = () => {
+        // deal players
+        let res = getCardsFromDeck(deck, 1)
+        let playerName = activePlayers[actionPlayer]
+        let player = players[playerName]
+        let cards = player.cards
+        cards.push(res.cards[0])
+        player.cards = cards
+        setPlayers(({...players, [playerName]:player}))
+        setDeck(a => a.filter(b => {
+            let boo = true
+            res.cards.forEach(c => {
+                if(c.id==b.id) {
+                    boo = false
+                }
+            })
+            return boo
+        }))
+    }
+
+
     useEffect(() => {
-        // new deck needed
-        if (deck.length==0) {
-            console.log('new deck')
-            var newDeck = generateDeck(7)
-            setDeck(a => [...a,...newDeck])
-        }
 
-        switch(action) {
-            case 'deal':
-                if (!dealer.cards) {
-                    dealCardsToDealer()
+        if (gameOn) {
+            // new deck needed
+            if (deck.length==0) {
+                console.log('new deck')
+                var newDeck = generateDeck(7)
+                setDeck(a => [...a,...newDeck])
+            } else {
+
+                switch(action) {
+                    case 'deal':
+                        if (!dealer.cards) {
+                            dealCardsToDealer()
+                        }
+
+                        if (dealer.cards && dealer.cards.length==2) {
+                            dealCardsToPlayers()
+                            setAction('player')
+                        }
+                        break
+                    
+                    case 'player':
+                        if(actionPlayer < 0) {
+                            setActionPlayer(0)
+                        } else {
+                            // validate that player can still play (not busted)
+                            let player = players[activePlayers[actionPlayer]]
+                            if(player && isBusted(player.cards) || isBlackjack(player.cards)) {
+                                // next player
+                                console.log('next', isBusted(player.cards))
+                                nextPlayer()
+                            }   
+                        }
+
+                        break
+
+                    case 'hands':
+                        activePlayers.forEach(p => {
+                            let winner = getWinner(dealer.cards, players[p].cards)
+                            if (winner == 'player') {
+                                // give money to player bet x 2 
+                            } else if (winner == 'dealer') {
+                                // give money to dealer
+                            } else {
+                                // no winner get bet back
+                            }
+                        })
+                        setGameOn(false)
+                        setAction('')
+                        break
                 }
-
-                if (dealer.cards && dealer.cards.length==2) {
-                    dealCardsToPlayers()
-                    setAction('player')
-                }
-                break
-            
-            case 'player':
-                break
+            }
         }
-
-
     }, [
         gameOn,
-        deck
+        deck,
+        actionPlayer
     ])
 
     const handleNewPlayer = (player) => {
@@ -111,6 +167,37 @@ export function Main (props) {
         setGameOn(true)
     }
 
+    const nextPlayer = () => {
+        var nextPlayer = actionPlayer + 1
+        if (nextPlayer<activePlayers.length) {
+            setActionPlayer(nextPlayer)
+        } else {
+            // last player
+            setAction('hands')
+            setActionPlayer(-1)
+        }
+    }
+
+    const handleOnClickKeep = (e) => {
+        e.preventDefault()
+        // next player
+        nextPlayer()
+    }
+
+    const handleOnClickHit = (e) => {
+        e.preventDefault()
+        // deal new card
+        dealCardToActivePlayer()
+    }
+
+    const handleOnClickDouble = (e) => {
+        e.preventDefault()
+        // double bet
+        // deal new card
+        dealCardToActivePlayer()
+        nextPlayer()
+    }
+
     return (
         <div className="mainStyle">
             <img style={{width:"200px", height:"200px"}} src={mainicon}></img>
@@ -134,10 +221,16 @@ export function Main (props) {
                         })}
                     </ul>
                 </div>
+                <form onSubmit={onStartSubmit}>
+                    <input type="submit" value="Play" />
+                </form>
+                {actionPlayer>=0 && 
+                <PlayerActions 
+                    handleOnClickHit={handleOnClickHit}
+                    handleOnClickKeep={handleOnClickKeep}
+                    handleOnClickDouble={handleOnClickDouble}/>
+                }
             </div>
-            <form onSubmit={onStartSubmit}>
-                <input type="submit" value="Play" />
-            </form>
         </div>
     );
 }
