@@ -17,7 +17,8 @@ const getPlayer = async (player) => {
         // player doesnt exist: init player
         const newPlayer = {
             name: player,
-            wallet: 1000
+            wallet: 1000,
+            win: 0
         }
         players = {
             ...players,

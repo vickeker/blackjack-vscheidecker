@@ -2,9 +2,7 @@ import React, { useEffect, useState } from 'react'
 import mainicon from 'assets/mainicon.jpg'
 import { generateDeck, getCardsFromDeck, getWinner, isBusted, isBlackjack } from 'common/cards'
 import 'App.css';
-import {AddPlayer} from 'common/components'
-import {PlayerActions} from 'common/components'
-
+import {AddPlayer,PlayerActions,Player,Dealer} from 'common/components'
 
 export function Main (props) {
     const {} = props;
@@ -23,7 +21,6 @@ export function Main (props) {
         setDealer(a => ({...a, cards: res.cards}))
         setDeck(a => a.filter(b => {
             let boo = true
-            console.log(res.cards)
             res.cards.forEach(c => {
                 if(c.id==b.id) {
                     boo = false
@@ -41,8 +38,6 @@ export function Main (props) {
             let cards = []
             cards.push(res.cards[(i*2)])
             cards.push(res.cards[(i*2)+1])
-            console.log('p', p)
-            console.log('i',i)
             let player = players[p]
             player.cards = cards
             setPlayers(({...players, [p]:player}))
@@ -84,11 +79,9 @@ export function Main (props) {
         if (gameOn) {
             // new deck needed
             if (deck.length==0) {
-                console.log('new deck')
                 var newDeck = generateDeck(7)
                 setDeck(a => [...a,...newDeck])
             } else {
-
                 switch(action) {
                     case 'deal':
                         if (!dealer.cards) {
@@ -109,7 +102,6 @@ export function Main (props) {
                             let player = players[activePlayers[actionPlayer]]
                             if(player && isBusted(player.cards) || isBlackjack(player.cards)) {
                                 // next player
-                                console.log('next', isBusted(player.cards))
                                 nextPlayer()
                             }   
                         }
@@ -117,16 +109,22 @@ export function Main (props) {
                         break
 
                     case 'hands':
+                        var newPlayers = players
                         activePlayers.forEach(p => {
+                            newPlayers[p].win = 0
                             let winner = getWinner(dealer.cards, players[p].cards)
                             if (winner == 'player') {
+                                newPlayers[p].win = 1
                                 // give money to player bet x 2 
                             } else if (winner == 'dealer') {
+                                newPlayers[p].win = -1
                                 // give money to dealer
                             } else {
+                                newPlayers[p].win = -1
                                 // no winner get bet back
                             }
                         })
+                        setPlayers(newPlayers)
                         setGameOn(false)
                         setAction('')
                         break
@@ -141,11 +139,10 @@ export function Main (props) {
 
     const handleNewPlayer = (player) => {
         // add new players to game
-        if (players[player.name]) {
-            // player already in the game
-            return true;
-        }
+        player.win = 0
+        player = {...players[player.name], ...player}
         setPlayers(a => ({...a, [player.name]: player}))
+
         // set player as active if game is not on and player not yet active
         if (!gameOn && !activePlayers.includes(player.name)) {
             setActivePlayers(a => [...a, player.name])
@@ -155,16 +152,27 @@ export function Main (props) {
 
     const onStartSubmit = (e) => {
         e.preventDefault()
-        // init players
         setActivePlayers([])
         Object.keys(players).forEach(pl => {
             let player = players[pl]
             setActivePlayers(a => [...a,player.name])
         })
-
         // game on
+        // init players
+        resetPlayers()
         setAction('deal')
         setGameOn(true)
+    }
+
+    const resetPlayers = () => {
+        var newPlayers = players || {}
+        Object.keys(newPlayers).forEach(p => {
+            newPlayers[p].win = 0
+            if(newPlayers[p].wallet == 0) {
+                delete newPlayers[p]
+            }
+        })
+        setPlayers({...newPlayers})
     }
 
     const nextPlayer = () => {
@@ -203,27 +211,21 @@ export function Main (props) {
             <img style={{width:"200px", height:"200px"}} src={mainicon}></img>
             <div style={{display:"block"}}>
                 <AddPlayer handleNewPlayer={handleNewPlayer} />
-                <div>
-                    <label>Players in the rooom</label>
-                    <ul>
-                        {Object.keys(players).map(function (pl) {
-                            console.log('pl', pl)
-                            var player = players[pl]
-                            return <li>{player.name}: {player.wallet}$</li>
-                        })}
-                    </ul>
-                </div>
+                <Dealer cards={dealer.cards}/>
                 <div>
                     <label>Player sitting at the table</label>
-                    <ul>
-                        {activePlayers.length>0 && activePlayers.map(pl => {
-                            return <li>{pl}</li>
+                        {activePlayers.length>0 && activePlayers.map((pl,i) => {
+                            let isPlaying=false
+                            if(i == actionPlayer) {
+                                isPlaying=true
+                            }
+                            let player = players[pl]
+                            return <Player player={player} isPlaying={isPlaying} />     
                         })}
-                    </ul>
                 </div>
-                <form onSubmit={onStartSubmit}>
+                {!gameOn && <form onSubmit={onStartSubmit}>
                     <input type="submit" value="Play" />
-                </form>
+                </form>}
                 {actionPlayer>=0 && 
                 <PlayerActions 
                     handleOnClickHit={handleOnClickHit}
